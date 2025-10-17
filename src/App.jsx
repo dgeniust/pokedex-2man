@@ -62,7 +62,7 @@ const PokemonCard = ({ pokemon, onClick }) => {
   );
 };
 
-const PokemonDetailModal = ({ pokemon, onClose }) => {
+const PokemonSidebar = ({ pokemon, onClose, allPokemons }) => {
   if (!pokemon) return null;
 
   const getTypeColor = (type) => {
@@ -110,175 +110,124 @@ const PokemonDetailModal = ({ pokemon, onClose }) => {
     { label: "SPE", value: pokemon.Spe, key: "SPE" },
   ];
 
+  const getEvolutionChain = (pokemon, allPokemons) => {
+    const sorted = allPokemons
+      .filter((p) => p.Type1 === pokemon.Type1 && p.Type2 === pokemon.Type2)
+      .sort((a, b) => a.Number - b.Number);
+
+    // Tìm index Pokémon hiện tại
+    const index = sorted.findIndex((p) => p.Number === pokemon.Number);
+    if (index === -1) return [];
+
+    // Tìm start: đi ngược để tìm 0 đầu tiên mà trước nó là 1
+    let start = index;
+    for (let i = index; i >= 0; i--) {
+      if (
+        sorted[i].FinalEvolution === 0 &&
+        (i === 0 || sorted[i - 1].FinalEvolution === 1)
+      ) {
+        start = i;
+        break;
+      }
+    }
+
+    // Tìm end: đi xuôi để gặp 0 tiếp theo sau 1
+    let end = index;
+    for (let i = index + 1; i < sorted.length; i++) {
+      if (sorted[i].FinalEvolution === 0) {
+        end = i;
+        break;
+      }
+    }
+
+    return sorted.slice(start, end + 1);
+  };
+
+  const evolutionChain = getEvolutionChain(pokemon, allPokemons);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="grid md:grid-cols-2 gap-8 p-8">
-          {/* Left Section */}
-          <div className="flex flex-col items-center">
-            <div className="text-center mb-6">
-              <div className="text-gray-400 text-sm font-semibold mb-2">
-                #{pokemon.Number}
-              </div>
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">
-                {pokemon.Name}
-              </h2>
-              <div className="text-gray-500 text-sm mb-3">Emperor Pokémon</div>
-              <div className="flex justify-center gap-2 mb-6">
-                <span
-                  className="px-5 py-2 rounded-full text-white text-sm font-bold uppercase"
-                  style={{ backgroundColor: getTypeColor(pokemon.Type1) }}
-                >
-                  {pokemon.Type1}
-                </span>
-                {pokemon.Type2 && (
-                  <span
-                    className="px-5 py-2 rounded-full text-white text-sm font-bold uppercase"
-                    style={{ backgroundColor: getTypeColor(pokemon.Type2) }}
-                  >
-                    {pokemon.Type2}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <img
-              src={pokemon.ImgURL}
-              alt={pokemon.Name}
-              className="w-64 h-64 object-contain mb-6"
-            />
-
-            {/* Abilities */}
-            <div className="w-full bg-gray-50 rounded-xl p-4 mb-4">
-              <h3 className="text-sm font-bold text-gray-700 mb-3">
-                ABILITIES
-              </h3>
-              <div className="flex gap-2 justify-center">
-                {pokemon.Abilities.slice(0, 2).map((ability, idx) => (
-                  <button
-                    key={idx}
-                    className="px-4 py-2 bg-white rounded-lg text-sm font-semibold text-gray-700 border-2 border-gray-200"
-                  >
-                    {ability}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Height & Weight */}
-            <div className="w-full grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className="text-sm font-bold text-gray-700 mb-1">
-                  HEIGHT
-                </div>
-                <div className="text-lg font-bold text-gray-800">1.7m</div>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className="text-sm font-bold text-gray-700 mb-1">
-                  WEIGHT
-                </div>
-                <div className="text-lg font-bold text-gray-800">84.5kg</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Section */}
-          <div>
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-3">
-                POKÉDEX ENTRY
-              </h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                It swims as fast as a jet boat. The edges of its wings are sharp
-                and can slice apart drifting ice.
-              </p>
-            </div>
-
-            {/* Weaknesses */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-3">
-                WEAKNESSES
-              </h3>
-              <div className="flex gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-300"></div>
-                <div className="w-8 h-8 rounded-full bg-yellow-400"></div>
-                <div className="w-8 h-8 rounded-full bg-orange-400"></div>
-                <div className="w-8 h-8 rounded-full bg-gray-600"></div>
-              </div>
-            </div>
-
-            {/* Base XP */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-2">BASE EXP</h3>
-              <div className="text-2xl font-bold text-gray-800">239</div>
-            </div>
-
-            {/* Stats */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-4">STATS</h3>
-              <div className="flex gap-2 mb-2">
-                {stats.map((stat) => (
-                  <div key={stat.key} className="flex flex-col items-center">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1"
-                      style={{ backgroundColor: getStatColor(stat.key) }}
-                    >
-                      {stat.label}
-                    </div>
-                    <div className="text-xs font-bold text-gray-700">
-                      {stat.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center bg-blue-500 text-white rounded-full px-4 py-2 text-sm font-bold">
-                <span>TOT</span>
-                <span>{pokemon.BST}</span>
-              </div>
-            </div>
-
-            {/* Evolution */}
-            <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-3">
-                EVOLUTION
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <img
-                    src={pokemon.ImgURL}
-                    alt=""
-                    className="w-16 h-16 object-contain mb-1"
-                  />
-                  <div className="text-xs text-gray-500">Lvl 16</div>
-                </div>
-                <div className="text-gray-400">→</div>
-                <div className="text-center">
-                  <img
-                    src={pokemon.ImgURL}
-                    alt=""
-                    className="w-16 h-16 object-contain mb-1"
-                  />
-                  <div className="text-xs text-gray-500">Lvl 36</div>
-                </div>
-                <div className="text-gray-400">→</div>
-                <div className="text-center">
-                  <img
-                    src={pokemon.ImgURL}
-                    alt=""
-                    className="w-16 h-16 object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+    <div className="w-96 bg-white shadow-lg border-l border-gray-200 overflow-y-auto">
+      <div className="p-6 relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 font-bold"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 font-bold text-lg"
         >
           ×
         </button>
+        <div className="text-center mb-6">
+          <div className="text-gray-400 text-sm font-semibold mb-2">
+            #{pokemon.Number}
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-3">
+            {pokemon.Name}
+          </h2>
+          <div className="text-gray-500 text-xs mb-3">Emperor Pokémon</div>
+          <div className="flex justify-center gap-2 mb-4">
+            <span
+              className="px-4 py-2 rounded-full text-white text-sm font-bold uppercase"
+              style={{ backgroundColor: getTypeColor(pokemon.Type1) }}
+            >
+              {pokemon.Type1}
+            </span>
+            {pokemon.Type2 && (
+              <span
+                className="px-4 py-2 rounded-full text-white text-sm font-bold uppercase"
+                style={{ backgroundColor: getTypeColor(pokemon.Type2) }}
+              >
+                {pokemon.Type2}
+              </span>
+            )}
+          </div>
+        </div>
+        <img
+          src={pokemon.ImgURL}
+          alt={pokemon.Name}
+          className="w-48 h-48 object-contain mx-auto mb-6"
+        />
+        <div className="mb-6">
+          <h3 className="text-xs font-bold text-gray-700 mb-3 uppercase">
+            Stats
+          </h3>
+          <div className="flex gap-2 mb-3 justify-between">
+            {stats.map((stat) => (
+              <div key={stat.key} className="flex flex-col items-center">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1"
+                  style={{ backgroundColor: getStatColor(stat.key) }}
+                >
+                  {stat.label}
+                </div>
+                <div className="text-xs font-bold text-gray-700">
+                  {stat.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="text-xs font-bold text-gray-700 mb-3 uppercase">
+            Evolution
+          </h3>
+          <div className="flex items-center justify-center gap-3">
+            {evolutionChain.map((p, idx) => (
+              <React.Fragment key={p.Number}>
+                <div className="text-center">
+                  <img
+                    src={p.ImgURL}
+                    alt={p.Name}
+                    className="w-12 h-12 object-contain mb-1"
+                  />
+                  <div className="text-xs text-gray-500">
+                    Lvl {idx === 0 ? 16 : 36}
+                  </div>
+                </div>
+                {idx < evolutionChain.length - 1 && (
+                  <div className="text-gray-400">→</div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -306,29 +255,33 @@ export default function App() {
         const formatted = data.map((p) => {
           let abilities = [];
           try {
-            abilities = JSON.parse(p.Abilities.replace(/'/g, '"'));
+            abilities = JSON.parse(
+              p.Abilities && p.Abilities !== "NULL"
+                ? p.Abilities.replace(/'/g, '"')
+                : "[]"
+            );
           } catch {
             abilities = [];
           }
 
           return {
-            Number: p.Number,
-            Name: p.Name,
-            Type1: p["Type 1"],
-            Type2: p["Type 2"],
+            Number: p.Number ?? 0,
+            Name: p.Name ?? "Unknown",
+            Type1: p["Type 1"] && p["Type 1"] !== "NULL" ? p["Type 1"] : null,
+            Type2: p["Type 2"] && p["Type 2"] !== "NULL" ? p["Type 2"] : null,
             Abilities: abilities,
-            HP: p.HP,
-            Att: p.Att,
-            Def: p.Def,
-            Spa: p.Spa,
-            Spd: p.Spd,
-            Spe: p.Spe,
-            BST: p.BST,
-            Generation: p.Generation,
-            ExperienceType: p["Experience type"],
-            ExperienceToLevel100: p["Experience to level 100"],
-            CatchRate: p["Catch Rate"],
-            ImgURL: p.ImgURL,
+            HP: p.HP ?? 0,
+            Att: p.Att ?? 0,
+            Def: p.Def ?? 0,
+            Spa: p.Spa ?? 0,
+            Spd: p.Spd ?? 0,
+            Spe: p.Spe ?? 0,
+            BST: p.BST ?? 0,
+            Generation: p.Generation ?? 0,
+            ExperienceType: p["Experience type"] ?? null,
+            ExperienceToLevel100: p["Experience to level 100"] ?? 0,
+            CatchRate: p["Catch Rate"] ?? 0,
+            ImgURL: p.ImgURL ?? "",
           };
         });
 
@@ -367,8 +320,7 @@ export default function App() {
   }, [searchTerm, rangeFrom, rangeTo, pokemonList]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center gap-8">
@@ -390,99 +342,88 @@ export default function App() {
           </div>
         </div>
       </nav>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search Bar */}
-        <div className="mb-8 relative">
-          <input
-            type="text"
-            placeholder="Search your Pokémon!"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-red-400 focus:outline-none text-gray-600"
-          />
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white">
-            <Search size={20} />
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-8 flex items-center gap-4">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-semibold text-gray-700">
-            <ArrowUpDown size={16} />
-            Ascending
-            <ChevronDown size={16} />
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">from</span>
-            <input
-              type="number"
-              value={rangeFrom}
-              onChange={(e) => setRangeFrom(e.target.value)}
-              placeholder="387"
-              className="w-20 px-3 py-2 rounded-lg border border-gray-300 text-center text-sm"
-            />
-            <span className="text-sm text-gray-600">to</span>
-            <input
-              type="number"
-              value={rangeTo}
-              onChange={(e) => setRangeTo(e.target.value)}
-              placeholder="896"
-              className="w-20 px-3 py-2 rounded-lg border border-gray-300 text-center text-sm"
-            />
-          </div>
-
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
-            <span className="w-4 h-4 rounded-full bg-gray-300"></span>
-            Type
-            <ChevronDown size={16} />
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
-            Weaknesses
-            <ChevronDown size={16} />
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
-            Ability
-            <ChevronDown size={16} />
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
-            Height
-            <ChevronDown size={16} />
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
-            Weight
-            <ChevronDown size={16} />
-          </button>
-          <button className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-            <ChevronDown size={20} className="text-white" />
-          </button>
-        </div>
-
-        {/* Pokemon Grid */}
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-block w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {filteredList.map((pokemon, idx) => (
-              <PokemonCard
-                key={`${pokemon.Number}-${idx}`}
-                pokemon={pokemon}
-                onClick={setSelectedPokemon}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="mb-8 relative">
+              <input
+                type="text"
+                placeholder="Search your Pokémon!"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-red-400 focus:outline-none text-gray-600"
               />
-            ))}
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white">
+                <Search size={20} />
+              </button>
+            </div>
+            <div className="mb-8 flex items-center gap-4 flex-wrap">
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-semibold text-gray-700">
+                <ArrowUpDown size={16} /> Ascending <ChevronDown size={16} />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">from</span>
+                <input
+                  type="number"
+                  value={rangeFrom}
+                  onChange={(e) => setRangeFrom(e.target.value)}
+                  placeholder="387"
+                  className="w-20 px-3 py-2 rounded-lg border border-gray-300 text-center text-sm"
+                />
+                <span className="text-sm text-gray-600">to</span>
+                <input
+                  type="number"
+                  value={rangeTo}
+                  onChange={(e) => setRangeTo(e.target.value)}
+                  placeholder="896"
+                  className="w-20 px-3 py-2 rounded-lg border border-gray-300 text-center text-sm"
+                />
+              </div>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
+                <span className="w-4 h-4 rounded-full bg-gray-300"></span> Type{" "}
+                <ChevronDown size={16} />
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
+                Weaknesses <ChevronDown size={16} />
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
+                Ability <ChevronDown size={16} />
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
+                Height <ChevronDown size={16} />
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300 text-sm text-gray-500">
+                Weight <ChevronDown size={16} />
+              </button>
+              <button className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                <ChevronDown size={20} className="text-white" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-6">
+              {loading ? (
+                <div className="text-center py-20">
+                  <div className="inline-block w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                filteredList.map((pokemon) => (
+                  <PokemonCard
+                    key={pokemon.Number}
+                    pokemon={pokemon}
+                    onClick={setSelectedPokemon}
+                  />
+                ))
+              )}
+            </div>
           </div>
+        </div>
+        {selectedPokemon && (
+          <PokemonSidebar
+            pokemon={selectedPokemon}
+            allPokemons={pokemonList}
+            onClose={() => setSelectedPokemon(null)}
+          />
         )}
       </div>
-
-      {selectedPokemon && (
-        <PokemonDetailModal
-          pokemon={selectedPokemon}
-          onClose={() => setSelectedPokemon(null)}
-        />
-      )}
     </div>
   );
 }
