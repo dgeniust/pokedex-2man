@@ -1,4 +1,10 @@
-export const PokemonDetailPanel = ({ pokemon, onClose }) => {
+import React from "react";
+export const PokemonDetailPanel = ({
+  pokemon,
+  evolutionChain,
+  onPokemonSelect,
+  onClose,
+}) => {
   if (!pokemon) {
     return (
       <div className="w-96 bg-white border-4 border-black p-6 flex items-center justify-center">
@@ -93,7 +99,7 @@ export const PokemonDetailPanel = ({ pokemon, onClose }) => {
     <div className="w-96 bg-white border-4 border-black shadow-[8px_8px_0_0_#000] overflow-y-auto h-full">
       <div className="p-6">
         {/* Header with close button */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end">
           <button
             onClick={onClose}
             className="w-8 h-8 bg-black border-4 border-black text-white font-extrabold flex items-center justify-center hover:bg-red-600 transition-colors"
@@ -262,6 +268,47 @@ export const PokemonDetailPanel = ({ pokemon, onClose }) => {
             </div>
           </div>
         </div>
+        {evolutionChain && evolutionChain.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-black text-xs font-extrabold uppercase mb-3 border-b-4 border-black pb-2">
+              Evolutions
+            </h3>
+            <div className="flex flex-wrap justify-center gap-2">
+              {evolutionChain.map((evoPokemon, idx) => {
+                const isCurrent = evoPokemon.Name === pokemon.Name;
+                return (
+                  <React.Fragment key={evoPokemon.Name}>
+                    {idx > 0 && (
+                      <div className="flex items-center justify-center text-2xl font-bold text-black">
+                        →
+                      </div>
+                    )}
+                    <button
+                      onClick={() => onPokemonSelect(evoPokemon)}
+                      className={`flex flex-col items-center p-2 border-4 border-black transition-all
+                          w-28 h-28 justify-center /* <-- THÊM DÒNG NÀY */
+                          ${
+                            isCurrent
+                              ? "bg-yellow-300 shadow-[4px_4px_0_0_#000]"
+                              : "bg-gray-100 hover:bg-yellow-200"
+                          }`}
+                      title={`View ${evoPokemon.Name}`}
+                    >
+                      <img
+                        src={evoPokemon.ImgURL}
+                        alt={evoPokemon.Name}
+                        className="w-16 h-16 object-contain"
+                      />
+                      <span className="text-black text-xs font-bold uppercase mt-1 text-center /* <-- THÊM text-center */">
+                        {evoPokemon.Name}
+                      </span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

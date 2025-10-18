@@ -1,5 +1,3 @@
-import React from "react";
-
 export const PokemonCard = ({ pokemon, onClick }) => {
   const getTypeColor = (type) => {
     const colors = {

@@ -1,22 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Input, Button, Pagination } from "antd";
 import { Search } from "lucide-react";
 import { PokemonCard } from "../src/components/PokemonCard";
 import { PokemonDetailPanel } from "./components/PokemonDetailPanel";
 import Filters from "./components/Filter";
 import Navbar from "./components/Navbar";
-
+import { groupPokemonByEvolutionChain } from "./utils/pokemonUtils"; // (sửa đường dẫn nếu cần)
 export default function App() {
   const [pokemonList, setPokemonList] = useState([]);
   const [filteredList, setFilteredList] = useState([]);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [rangeFrom, setRangeFrom] = useState("");
-  const [rangeTo, setRangeTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isPanelVisible, setIsPanelVisible] = useState(false);
-
+  const [filters, setFilters] = useState({
+    searchTerm: "",
+    rangeFrom: "",
+    rangeTo: "",
+    sort: "ascending", // 'ascending' | 'descending' | 'name-asc' | 'name-desc'
+    type: null, // ví dụ: "Grass"
+    weakness: null, // ví dụ: "Fire"
+    ability: null, // ví dụ: "Overgrow"
+    height: null, // ví dụ: "small" | "medium" | "large"
+    weight: null, // ví dụ: "light" | "medium" | "heavy"
+  });
   const itemsPerPage = 18;
 
   useEffect(() => {
@@ -59,6 +66,28 @@ export default function App() {
             ExperienceToLevel100: p["Experience to level 100"] ?? 0,
             CatchRate: p["Catch Rate"] ?? 0,
             ImgURL: p.ImgURL ?? "",
+            // DỮ LIỆU DÙNG CHO LOGIC TIẾN HÓA
+            FinalEvolution: p["Final Evolution"] ?? 0.0,
+
+            // DỮ LIỆU DÙNG CHO LOGIC ĐIỂM YẾU
+            "Against Normal": p["Against Normal"],
+            "Against Fire": p["Against Fire"],
+            "Against Water": p["Against Water"],
+            "Against Electric": p["Against Electric"],
+            "Against Grass": p["Against Grass"],
+            "Against Ice": p["Against Ice"],
+            "Against Fighting": p["Against Fighting"],
+            "Against Poison": p["Against Poison"],
+            "Against Ground": p["Against Ground"],
+            "Against Flying": p["Against Flying"],
+            "Against Psychic": p["Against Psychic"],
+            "Against Bug": p["Against Bug"],
+            "Against Rock": p["Against Rock"],
+            "Against Ghost": p["Against Ghost"],
+            "Against Dragon": p["Against Dragon"],
+            "Against Dark": p["Against Dark"],
+            "Against Steel": p["Against Steel"],
+            "Against Fairy": p["Against Fairy"],
           };
         });
 
@@ -74,32 +103,80 @@ export default function App() {
     fetchPokemons();
   }, []);
 
+  const allEvolutionChains = useMemo(
+    () => groupPokemonByEvolutionChain(pokemonList),
+    [pokemonList]
+  );
+
+  const [selectedChain, setSelectedChain] = useState(null);
+
+  useEffect(() => {
+    if (selectedPokemon) {
+      // Khi 1 Pokémon được chọn, tìm chuỗi của nó
+      const foundChain = allEvolutionChains.find((chain) =>
+        chain.some((p) => p.Name === selectedPokemon.Name)
+      );
+      setSelectedChain(foundChain || null); // Lưu lại chuỗi này
+      setIsPanelVisible(true);
+    } else {
+      // Khi đóng panel (selectedPokemon là null)
+      setIsPanelVisible(false);
+      setSelectedChain(null); // Xóa chuỗi
+    }
+  }, [selectedPokemon, allEvolutionChains]);
   useEffect(() => {
     let filtered = [...pokemonList];
 
-    if (searchTerm) {
+    // 1. Filter theo Search Term
+    if (filters.searchTerm) {
       filtered = filtered.filter(
         (p) =>
-          p.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.Number.toString().includes(searchTerm)
+          p.Name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+          p.Number.toString().includes(filters.searchTerm)
       );
     }
 
-    if (rangeFrom) {
-      filtered = filtered.filter((p) => p.Number >= parseInt(rangeFrom));
+    // 2. Filter theo Number Range
+    if (filters.rangeFrom) {
+      filtered = filtered.filter(
+        (p) => p.Number >= parseInt(filters.rangeFrom)
+      );
+    }
+    if (filters.rangeTo) {
+      filtered = filtered.filter((p) => p.Number <= parseInt(filters.rangeTo));
     }
 
-    if (rangeTo) {
-      filtered = filtered.filter((p) => p.Number <= parseInt(rangeTo));
+    // 3. Filter theo Type
+    if (filters.type) {
+      filtered = filtered.filter(
+        (p) => p.Type1 === filters.type || p.Type2 === filters.type
+      );
     }
+
+    // 4. Filter theo Weakness
+    if (filters.weakness) {
+      // ví dụ: weakness = "Fire" -> check key "Against Fire"
+      const key = `Against ${filters.weakness}`;
+      filtered = filtered.filter((p) => p[key] > 1);
+    }
+
+    // 5. Filter theo Ability
+    if (filters.ability) {
+      filtered = filtered.filter(
+        (p) => p.Abilities && p.Abilities.includes(filters.ability)
+      );
+    }
+    // 8. Sắp xếp (Sort)
+    if (filters.sort === "ascending") {
+      filtered.sort((a, b) => a.Number - b.Number);
+    } else if (filters.sort === "descending") {
+      filtered.sort((a, b) => b.Number - a.Number);
+    }
+    // (Bạn có thể thêm các logic sort khác như 'name-asc'...)
 
     setFilteredList(filtered);
     setCurrentPage(1); // reset về trang đầu khi filter thay đổi
-  }, [searchTerm, rangeFrom, rangeTo, pokemonList]);
-
-  useEffect(() => {
-    if (selectedPokemon) setIsPanelVisible(true);
-  }, [selectedPokemon]);
+  }, [filters, pokemonList]);
 
   // Tính toán dữ liệu phân trang
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -115,8 +192,13 @@ export default function App() {
             <div className="mb-8">
               <Input.Search
                 placeholder="Search your Pokemon!"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.searchTerm}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    searchTerm: e.target.value,
+                  }))
+                }
                 className="w-full !border-4 !border-black !bg-white !text-lg !font-extrabold !uppercase !text-black focus:!border-red-600"
                 enterButton={
                   <Button
@@ -128,7 +210,7 @@ export default function App() {
             </div>
 
             {/* Bộ lọc */}
-            <Filters />
+            <Filters filters={filters} setFilters={setFilters} />
 
             {/* Layout chính */}
             <div
@@ -186,16 +268,16 @@ export default function App() {
                 className={`absolute top-0 right-0 h-full shadow-[8px_8px_0_#000]
                 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
                 ${
-                  selectedPokemon
-                    ? "translate-x-0 sm:block"
-                    : "translate-x-full"
+                  isPanelVisible ? "translate-x-0 sm:block" : "translate-x-full"
                 }
                 hidden w-[400px]`}
               >
-                {selectedPokemon && (
+                {isPanelVisible && selectedPokemon && (
                   <div className="h-full p-6 animate-fadeIn">
                     <PokemonDetailPanel
                       pokemon={selectedPokemon}
+                      evolutionChain={selectedChain}
+                      onPokemonSelect={setSelectedPokemon}
                       onClose={() => setSelectedPokemon(null)}
                     />
                   </div>
